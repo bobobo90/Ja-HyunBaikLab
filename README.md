@@ -15,10 +15,10 @@ biochemistry, and behavior, 201, 173093. https://doi.org/10.1016/j.pbb.2020.1730
 
 Normalized delta F/F.csv files of each mouse are exported  by using pMAT.
 For installation of pMAT in MATLAB, pMAT should be downloaded from https://github.com/djamesbarker/pMAT and saved to a Windows PC. 
-The pmat is executed by putting 'pmat' in the MATLAB command window and pressing enter.
+The pMAT is executed by putting 'pMAT' in the MATLAB command window and pressing enter.
 The normalized z-score were calculated by dividing the raw normalized delta F/F signals by the mean signals from –5 s before the food eating events.
 For the peri-event time histograms (PETHs), the onsets of each event (biting) were aligned to the time zero and the signals were normalized as [(Zscore – Zscorebaseline)/Zscorebaseline )]. 
-Zscorebaseline was the mean of 'normalized delta F/F' for the window before the time zero. 
+Zscore baseline was the mean of 'normalized delta F/F' for the window before the time zero. 
 Eating time point is calculated manually by using video recording.
 Excel file containing z-score of all trials for eating point from -5 seconds to +5 seconds was loaded in customized matlab code.
 Expected run time for demo on a 'normal' desktop is 15 seconds.
