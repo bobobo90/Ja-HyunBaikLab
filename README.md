@@ -1,4 +1,4 @@
-# Demo-code
+# README
 We used 'MATLAB R2020a' software for data analysis.
 
 Video installation instruction of 'MATLAB R2020a' software is linked to:
