@@ -32,8 +32,8 @@ TTL = [332.1479
 ]; %eating time point
 
 data = TDTbin2mat(filename);
-Pre = -2; %TTL Time from signal Pre (pre~0s:baseline)
-Post = 10; %TTL Time from signal Post
+Pre = -2; %Time from TTL signal Pre (pre~0s:baseline)
+Post = 10; %Time from TTLsignal Post
 Data468 = data.streams.Dv2B.data;
 Data405 = data.streams.Dv1B.data;
 Sampleing_rate_inverse = 1/1017.3;
