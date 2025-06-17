@@ -1,0 +1,27 @@
+files = dir('*.csv'); % Search for all CSV files in the current folder
+
+for i = 1:length(files)
+    % Read the file
+    filename = files(i).name;
+    data = readmatrix(filename);
+
+    % Compute the average every 100 rows
+    numRows = size(data, 1);
+    numBins = ceil(numRows / 100);
+    averagedData = zeros(numBins, size(data, 2));
+
+    for bin = 1:numBins
+        startRow = (bin - 1) * 100 + 1;
+        endRow = min(bin * 100, numRows);
+        averagedData(bin, :) = mean(data(startRow:endRow, :), 1);
+    end
+
+    % Create a new file name and save the result
+    [~, name, ~] = fileparts(filename);
+    newFilename = strcat(name, '_10bin.csv');
+    writematrix(averagedData, newFilename);
+
+    fprintf('Processed and saved: %s\n', newFilename);
+end
+
+disp('All files processed successfully.');
