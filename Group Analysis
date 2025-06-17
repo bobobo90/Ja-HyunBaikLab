@@ -1,0 +1,78 @@
+% Set group information
+groupTitles = {'shLacZ_PFE_Fed','shD2R_PFE_Fed'};
+folders = {'folder path'}; % Enter the folder paths for each group
+
+Pre = -10; % Time before TTL signal
+Post = 10; % Time after TTL signal
+
+% Set sampling rate (adjust if necessary)
+Sampleing_rate_inverse = 1/1017.3;
+
+% Initialize data storage variables
+groupData = cell(1, length(folders));
+mean_dffs = cell(1, length(folders));
+SEMs = cell(1, length(folders));
+
+% Set time vector
+Time = linspace(Pre, Post, ceil((Post - Pre) / Sampleing_rate_inverse))';
+
+% Read, merge, and store data for each group
+for g = 1:length(folders)
+    % Get the list of files in the current folder
+    files = dir(fullfile(folders{g}, '*.csv')); % Get only CSV files
+    allData = [];
+    trialNames = {}; % Store the name of each column (trial)
+    
+    for f = 1:length(files)
+        % File path
+        filePath = fullfile(files(f).folder, files(f).name);
+        
+        % Read CSV file
+        dataTable = readtable(filePath);
+        
+        % Remove .csv from the original file name
+        [~, fileName, ~] = fileparts(files(f).name);
+        
+        % Generate column names (file name + trial number)
+        numTrials = size(dataTable, 2) - 1; % Exclude the first column
+        trialNames = [trialNames, arrayfun(@(x) sprintf('%s_Trial%d', fileName, x), ...
+            1:numTrials, 'UniformOutput', false)];
+        
+        % Merge data (column-wise)
+        allData = [allData, dataTable{:, 2:end}]; % Exclude first column and merge
+    end
+    
+    % Store group data
+    groupData{g} = allData;
+    
+    % Calculate mean and SEM
+    mean_dffs{g} = mean(allData, 2);
+    SEMs{g} = std(allData, 0, 2) / sqrt(size(allData, 2));
+    
+    % Save combined data
+    combinedData = array2table([Time, allData], ...
+        'VariableNames', ['Time', trialNames]);
+    writetable(combinedData, fullfile(folders{g}, [groupTitles{g}, '_combined_data.csv']));
+end
+
+% Generate plot
+figure;
+
+% Plot data for each group
+hold on;
+colors = {'-r', '-b'}; % Set colors for each group
+
+for g = 1:length(groupData)
+    % Create shaded error bar
+    shadedErrorBar(Time, mean_dffs{g}, SEMs{g}, 'lineprops', colors{g}, 'patchSaturation', 0.3);
+end
+
+% Customize plot
+xlabel('Time (s)');
+ylabel('Mean Z-score');
+title('Mean Z-score with SEM for Groups');
+legend(groupTitles, 'Location', 'Best');
+grid on;
+xlim([min(Time), max(Time)]);
+ylim([min(cellfun(@(x, y) min(x - y), mean_dffs, SEMs)), max(cellfun(@(x, y) max(x + y), mean_dffs, SEMs))]);
+hold off;
