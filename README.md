@@ -1,5 +1,5 @@
 # README
-We used 'MATLAB R2020a' software for data analysis.
+We used 'MATLAB R2020a' and'MATLAB R2024b' software for data analysis.
 
 Video installation instruction of 'MATLAB R2020a' software is linked to:
 https://kr.mathworks.com/videos/how-to-install-matlab-1525083586145.html
