@@ -1,161 +1,124 @@
-Tx = readtable('Demo data_NCOMMS-23-28262.xlsx', 'Range','A:A');  %pmat으로 추출한 data csv 파일 이름 입력
-Xz = Tx(:,1);
-Xz = table2array(Xz);
-Xz = Xz-Xz(1)-5;
-T0 = find(Xz>0, 1);
-Ts = find(Xz>-5, 1);
-Te = find(Xz>5, 1);
+filename='TDT raw data pathway'; % input Folder (TDT Raw data)
+Output= 'Output_name'; %Output name 
+TTL = [332.1479
+]; %eating time point
 
-Ty = readtable('Demo data_NCOMMS-23-28262.xlsx', 'Range','B:Q');  %pmat으로 추출한 data csv 파일 이름 입력
-Yz = table2array(Ty);
+data = TDTbin2mat(filename);
+Pre = -2; %Time frome TTL signal Pre (pre~0초가 baseline이 됨)
+Post = 10; %Time frome TTL signal Post
+Data468 = data.streams.Dv2B.data;
+Data405 = data.streams.Dv1B.data;
+Sampleing_rate_inverse = 1/1017.3;
+Time = Pre:Sampleing_rate_inverse:Post;
 
-Y1=Yz(:,1);
-Y2=Yz(:,2);
-Y3=Yz(:,3);
-Y4=Yz(:,4);
-Y5=Yz(:,5);
-Y6=Yz(:,6);
-Y7=Yz(:,7);
-Y8=Yz(:,8);
-Y9=Yz(:,9);
-Y10=Yz(:,10);
-Y11=Yz(:,11);
-Y12=Yz(:,12);
-Y13=Yz(:,13);
-Y14=Yz(:,14);
-Y15=Yz(:,15);
-Y16=Yz(:,16);
-Y17=Yz(:,17);
-Y18=Yz(:,18);
-Y19=Yz(:,19);
-Y20=Yz(:,20);
-Y21=Yz(:,21);
-Y22=Yz(:,22);
-Y23=Yz(:,23);
-Y24=Yz(:,24);
-Y25=Yz(:,25);
-Y26=Yz(:,26);
-Y27=Yz(:,27);
-Y28=Yz(:,28);
-Y29=Yz(:,29);
-Y30=Yz(:,30);
-Y31=Yz(:,31);
-Y32=Yz(:,32);
-Y33=Yz(:,33);
-Y34=Yz(:,34);
-Y35=Yz(:,35);
-Y36=Yz(:,36);
-Y37=Yz(:,37);
-Y38=Yz(:,38);
-Y39=Yz(:,39);
+TimeStamp = (1:length(Data468)) * Sampleing_rate_inverse;
 
+% Polynomial fitting
+reg = polyfit(Data405, Data468, 1);
+a = reg(1);
+b = reg(2);
+ControlFit = a .* Data405 + b;
 
+% Calculate df/f
+normDat = (Data468 - ControlFit) ./ ControlFit;
+normDatper = normDat * 100;
+normDatperdf = table(normDatper, 'VariableNames', {'dff'});
+normDatperdf.Time = TimeStamp;
 
+% Initialize results table for TTL-aligned ΔF/F
+numTrials = length(TTL); 
+maxRows = ceil((Post - Pre) / Sampleing_rate_inverse); % Calculate maximum rows needed
+TTL1_on_dff = nan(maxRows, numTrials); % Preallocate for efficiency
+preMeanZScores = nan(1, numTrials); % Preallocate for Pre-period mean Z-scores
 
+for i = 1:numTrials
+    % Extract current TTL time
+    TTL1_on = TTL(i);
+    
+    % Logical indexing to extract ΔF/F around the TTL event
+    timeMask = (normDatperdf.Time >= (TTL1_on + Pre)) & (normDatperdf.Time <= (TTL1_on + Post));
+    df4 = normDatperdf.dff(timeMask);
+    
+    % Calculate baseline for normalization or z-scoring
+    baselineMask = (normDatperdf.Time >= (TTL1_on + Pre)) & (normDatperdf.Time <= TTL1_on);
+    dffMeanBaseline = mean(normDatperdf.dff(baselineMask));
+    dffStdBaseline = std(normDatperdf.dff(baselineMask));
+    
+    % Normalize data (Z-scoring)
+    df4 = (df4 - dffMeanBaseline) / dffStdBaseline;
+    
+    % Store Pre-period mean Z-score
+    preMeanZScores(i) = mean((normDatperdf.dff(baselineMask) - dffMeanBaseline) / dffStdBaseline, 'omitnan');
+    
+    % Fill preallocated matrix
+    TTL1_on_dff(1:length(df4), i) = df4; % Handle different lengths
+end
 
-Y1baseline = mean(Y1([Ts:T0]));
-Y2baseline = mean(Y2([Ts:T0]));
-Y3baseline = mean(Y3([Ts:T0]));
-Y4baseline = mean(Y4([Ts:T0]));
-Y5baseline = mean(Y5([Ts:T0]));
-Y6baseline = mean(Y6([Ts:T0]));
-Y7baseline = mean(Y7([Ts:T0]));
-Y8baseline = mean(Y8([Ts:T0]));
-Y9baseline = mean(Y9([Ts:T0]));
-Y10baseline = mean(Y10([Ts:T0]));
-Y11baseline = mean(Y11([Ts:T0]));
-Y12baseline = mean(Y12([Ts:T0]));
-Y13baseline = mean(Y13([Ts:T0]));
-Y14baseline = mean(Y14([Ts:T0]));
-Y15baseline = mean(Y15([Ts:T0]));
-Y16baseline = mean(Y16([Ts:T0]));
-Y17baseline = mean(Y17([Ts:T0]));
-Y18baseline = mean(Y18([Ts:T0]));
-Y19baseline = mean(Y19([Ts:T0]));
-Y20baseline = mean(Y20([Ts:T0]));
-Y21baseline = mean(Y21([Ts:T0]));
-Y22baseline = mean(Y22([Ts:T0]));
-Y23baseline = mean(Y23([Ts:T0]));
-Y24baseline = mean(Y24([Ts:T0]));
-Y25baseline = mean(Y25([Ts:T0]));
-Y26baseline = mean(Y26([Ts:T0]));
-Y27baseline = mean(Y27([Ts:T0]));
-Y28baseline = mean(Y28([Ts:T0]));
-Y29baseline = mean(Y29([Ts:T0]));
-Y30baseline = mean(Y30([Ts:T0]));
-Y31baseline = mean(Y31([Ts:T0]));
-Y32baseline = mean(Y32([Ts:T0]));
-Y33baseline = mean(Y33([Ts:T0]));
-Y34baseline = mean(Y34([Ts:T0]));
-Y35baseline = mean(Y35([Ts:T0]));
-Y36baseline = mean(Y36([Ts:T0]));
-Y37baseline = mean(Y37([Ts:T0]));
-Y38baseline = mean(Y38([Ts:T0]));
-Y39baseline = mean(Y39([Ts:T0]));
+% Convert TTL-aligned ΔF/F to a table for easier handling
+TTL1_on_dff = array2table(TTL1_on_dff, 'VariableNames', ...
+    arrayfun(@(x) sprintf('Trial%d', x), 1:numTrials, 'UniformOutput', false));
 
+% Time vector for ΔF/F plots
+alignedTime = linspace(Pre, Post, size(TTL1_on_dff, 1));
 
+% Calculate Post-period mean Z-scores for each trial
+postMeanZScores = nan(1, numTrials); % Preallocate
+for i = 1:numTrials
+    % Identify Post-period time indices
+    postMask = (alignedTime >= 0 & alignedTime <= Post); % 0s to Post
+    postData = TTL1_on_dff{postMask, i}; % Extract Post-period data
+    postMeanZScores(i) = mean(postData, 'omitnan'); % Calculate mean Z-score for Post-period
+end
 
+% Save Pre and Post-period mean Z-scores as a table
+prePostMeanZScoresTable = table((1:numTrials)', preMeanZScores', postMeanZScores', ...
+    'VariableNames', {'Trial', 'Pre_Mean_ZScore', 'Post_Mean_ZScore'});
 
-Y1normal = (Y1 - Y1baseline)/Y1baseline;
-Y2normal = (Y2 - Y2baseline)/Y2baseline;
-Y3normal = (Y3 - Y3baseline)/Y3baseline;
-Y4normal = (Y4 - Y4baseline)/Y4baseline;
-Y5normal = (Y5 - Y5baseline)/Y5baseline;
-Y6normal = (Y6 - Y6baseline)/Y6baseline;
-Y7normal = (Y7 - Y7baseline)/Y7baseline;
-Y8normal = (Y8 - Y8baseline)/Y8baseline;
-Y9normal = (Y9 - Y9baseline)/Y9baseline;
-Y10normal = (Y10 - Y10baseline)/Y10baseline;
-Y11normal = (Y11 - Y11baseline)/Y11baseline;
-Y12normal = (Y12 - Y12baseline)/Y12baseline;
-Y13normal = (Y13 - Y13baseline)/Y13baseline;
-Y14normal = (Y14 - Y14baseline)/Y14baseline;
-Y15normal = (Y15 - Y15baseline)/Y15baseline;
-Y16normal = (Y16 - Y16baseline)/Y16baseline;
-Y17normal = (Y17 - Y17baseline)/Y17baseline;
-Y18normal = (Y18 - Y18baseline)/Y18baseline;
-Y19normal = (Y19 - Y19baseline)/Y19baseline;
-Y20normal = (Y20 - Y20baseline)/Y20baseline;
-Y21normal = (Y21 - Y21baseline)/Y21baseline;
-Y22normal = (Y22 - Y22baseline)/Y22baseline;
-Y23normal = (Y23 - Y23baseline)/Y23baseline;
-Y24normal = (Y24 - Y24baseline)/Y24baseline;
-Y25normal = (Y25 - Y25baseline)/Y25baseline;
-Y26normal = (Y26 - Y26baseline)/Y26baseline;
-Y27normal = (Y27 - Y27baseline)/Y27baseline;
-Y28normal = (Y28 - Y28baseline)/Y28baseline;
-Y29normal = (Y29 - Y29baseline)/Y29baseline;
-Y30normal = (Y30 - Y30baseline)/Y30baseline;
-Y31normal = (Y31 - Y31baseline)/Y31baseline;
-Y32normal = (Y32 - Y32baseline)/Y32baseline;
-Y33normal = (Y33 - Y33baseline)/Y33baseline;
-Y34normal = (Y34 - Y34baseline)/Y34baseline;
-Y35normal = (Y35 - Y35baseline)/Y35baseline;
-Y36normal = (Y36 - Y36baseline)/Y36baseline;
-Y37normal = (Y37 - Y37baseline)/Y37baseline;
-Y38normal = (Y38 - Y38baseline)/Y38baseline;
-Y39normal = (Y39 - Y39baseline)/Y39baseline;
+% Write Pre and Post-period mean Z-scores to CSV
+writetable(prePostMeanZScoresTable, [Output '_PrePostMeanZScores.csv']);
 
-Ysum = horzcat(Y1normal,Y2normal,Y3normal,Y4normal,Y5normal,Y6normal,Y7normal,Y8normal,Y9normal,Y10normal,Y11normal,Y12normal,Y13normal,Y14normal,Y15normal,Y16normal,Y17normal,Y18normal,Y19normal,Y20normal,Y21normal,Y22normal,Y23normal,Y24normal,Y25normal,Y26normal,Y27normal,Y28normal,Y29normal,Y30normal,Y31normal,Y32normal,Y33normal,Y34normal,Y35normal,Y36normal,Y37normal,Y38normal,Y39normal);
-Ymean = mean (Ysum, 2);
-Ystd = std(Ysum, 1 ,2);
-Ystd = Ystd/sqrt(39); 
-f1= figure;
+% Write full TTL-aligned ΔF/F data to CSV
+writetable(TTL1_on_dff, [Output '.csv']);
 
-errorbar(Xz,Ymean,Ystd, 'Color','#82B3ED','LineWidth',1.5,... %#DEC1DE
-                 'LineStyle', '-');
+% Calculate mean and SEM
+mean_dff = mean(TTL1_on_dff{:, :}, 2, 'omitnan');
+SEM = std(TTL1_on_dff{:, :}, 0, 2, 'omitnan') / sqrt(size(TTL1_on_dff, 2));
 
-             
-hold on
+% Create heatmap and plot
+figure;
+colormap redblue;
 
+% Heatmap
+subplot(2, 1, 1);
+imagesc(TTL1_on_dff{:, :}');
+colormap redblue; % Use a colormap for better visualization
+colorbar;
+xlabel('Time (s)');
+ylabel('Trials');
+title('Heatmap of ΔF/F aligned to TTL Events');
 
-plot (Xz, Ymean, 'Color','#0078FF','LineWidth',2,...
-                 'LineStyle', '-');
+% Set x-axis ticks based on the time vector
+set(gca, 'XTick', linspace(1, size(TTL1_on_dff, 1), 5), 'XTickLabel', linspace(Pre, Post, 5));
 
-title('fiber photometry')
-xlabel('time(s)') 
-ylabel('Z-score') 
-xlim ([Xz(Ts), Xz(Te)]);
-ylim ([-5, 2]);
+% Shaded Error Bar Plot
+subplot(2, 1, 2);
+
+% Calculate upper and lower bounds for shaded area
+upper_bound = mean_dff + SEM;
+lower_bound = mean_dff - SEM;
+
+% Plot shaded error bar
+shadedErrorBar(alignedTime, mean_dff, SEM, 'lineprops', '-r', 'patchSaturation', 0.3);
+
+% Add labels and title
+xlabel('Time (s)');
+ylabel('Mean Z-score');
+title('Mean Z-score with SEM');
+grid on;
+
+% Save final results
+writetable(prePostMeanZScoresTable, [Output '_PrePostMeanZScores.csv']);
+writetable(TTL1_on_dff, [Output '.csv']);
+
 
 
