@@ -26,20 +26,21 @@ Expected run time for demo on a 'normal' desktop is 15 seconds.
 Below is the code used for analyzing 'Peri Event Time Histogram'.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
-filename='TDT Raw data'; % input Folder pathway (TDT Raw data)
-Output= 'Output_name'; %Output name 
-TTL = [332.1479
-]; %eating time point
+
+filename= 'File_pathway' % input 폴더 (TDT Raw data)
+Output= 'Mouse_label' %출력 파일 이름
+TTL = []; %eating time point
+
 
 data = TDTbin2mat(filename);
-Pre = -2; %Time from TTL signal Pre (pre~0s:baseline)
-Post = 10; %Time from TTLsignal Post
+Pre = -2; 
+Post = 10; 
 Data468 = data.streams.Dv2B.data;
 Data405 = data.streams.Dv1B.data;
 Sampleing_rate_inverse = 1/1017.3;
 Time = Pre:Sampleing_rate_inverse:Post;
 
-TimeStamp = (1:length(Data468)) * Sampleing_rate_inverse;
+TimeStamp = (1:length(Data468))*Sampleing_rate_inverse;
 
 % Polynomial fitting
 reg = polyfit(Data405, Data468, 1);
@@ -53,11 +54,11 @@ normDatper = normDat * 100;
 normDatperdf = table(normDatper, 'VariableNames', {'dff'});
 normDatperdf.Time = TimeStamp;
 
+
 % Initialize results table for TTL-aligned ΔF/F
 numTrials = length(TTL); 
 maxRows = ceil((Post - Pre) / Sampleing_rate_inverse); % Calculate maximum rows needed
 TTL1_on_dff = nan(maxRows, numTrials); % Preallocate for efficiency
-preMeanZScores = nan(1, numTrials); % Preallocate for Pre-period mean Z-scores
 
 for i = 1:numTrials
     % Extract current TTL time
@@ -75,9 +76,6 @@ for i = 1:numTrials
     % Normalize data (Z-scoring)
     df4 = (df4 - dffMeanBaseline) / dffStdBaseline;
     
-    % Store Pre-period mean Z-score
-    preMeanZScores(i) = mean((normDatperdf.dff(baselineMask) - dffMeanBaseline) / dffStdBaseline, 'omitnan');
-    
     % Fill preallocated matrix
     TTL1_on_dff(1:length(df4), i) = df4; % Handle different lengths
 end
@@ -89,36 +87,33 @@ TTL1_on_dff = array2table(TTL1_on_dff, 'VariableNames', ...
 % Time vector for ΔF/F plots
 alignedTime = linspace(Pre, Post, size(TTL1_on_dff, 1));
 
-% Calculate Post-period mean Z-scores for each trial
-postMeanZScores = nan(1, numTrials); % Preallocate
-for i = 1:numTrials
-    % Identify Post-period time indices
-    postMask = (alignedTime >= 0 & alignedTime <= Post); % 0s to Post
-    postData = TTL1_on_dff{postMask, i}; % Extract Post-period data
-    postMeanZScores(i) = mean(postData, 'omitnan'); % Calculate mean Z-score for Post-period
-end
+bindf = TTL1_on_dff;
 
-% Save Pre and Post-period mean Z-scores as a table
-prePostMeanZScoresTable = table((1:numTrials)', preMeanZScores', postMeanZScores', ...
-    'VariableNames', {'Trial', 'Pre_Mean_ZScore', 'Post_Mean_ZScore'});
-
-% Write Pre and Post-period mean Z-scores to CSV
-writetable(prePostMeanZScoresTable, [Output '_PrePostMeanZScores.csv']);
-
-% Write full TTL-aligned ΔF/F data to CSV
-writetable(TTL1_on_dff, [Output '.csv']);
+% Write bindf to CSV
+Folders = split(filename,"\");
+Folder = Folders(end);
+Folder = char(Folder);
+writetable(bindf, [Output '.csv']);
 
 % Calculate mean and SEM
-mean_dff = mean(TTL1_on_dff{:, :}, 2, 'omitnan');
-SEM = std(TTL1_on_dff{:, :}, 0, 2, 'omitnan') / sqrt(size(TTL1_on_dff, 2));
+mean_dff = mean(bindf{:, 2:end}, 2);
+SEM = std(bindf{:, 2:end}, 0, 2) / sqrt(size(bindf, 2) - 1);
 
-% Create heatmap and plot
+bindf2=rows2vars(bindf);
+
+% Define x-axis ticks and labels based on specific Time values
+numXTicks = 5; % Number of ticks on the x-axis
+xTicksValues = linspace(min(Time), max(Time), numXTicks); % Time values for ticks
+xTicks = linspace(min(Time), max(Time), numXTicks);  % Choose time points for ticks
+xTickLabels = arrayfun(@(x) sprintf('%.2f', x), xTicks, 'UniformOutput', false);  % Convert to string labels
+
+% Create figure
 figure;
 colormap redblue;
 
-% Heatmap
+% Heatmap with transposed bindf
 subplot(2, 1, 1);
-imagesc(TTL1_on_dff{:, :}');
+imagesc(bindf{:, 1:end}');
 colormap redblue; % Use a colormap for better visualization
 colorbar;
 xlabel('Time (s)');
@@ -126,29 +121,29 @@ ylabel('Trials');
 title('Heatmap of ΔF/F aligned to TTL Events');
 
 % Set x-axis ticks based on the time vector
-set(gca, 'XTick', linspace(1, size(TTL1_on_dff, 1), 5), 'XTickLabel', linspace(Pre, Post, 5));
-
-% Shaded Error Bar Plot
-subplot(2, 1, 2);
-
+set(gca, 'XTick', linspace(1, size(TTL1_on_dff, 1), numXTicks), 'XTickLabel', xTickLabels);
 % Calculate upper and lower bounds for shaded area
 upper_bound = mean_dff + SEM;
 lower_bound = mean_dff - SEM;
 
-% Plot shaded error bar
-shadedErrorBar(alignedTime, mean_dff, SEM, 'lineprops', '-r', 'patchSaturation', 0.3);
+% Shaded Error Bar Plot
+subplot(2, 1, 2);
+
+% Create the shaded area
+
+% Ensure Time matches the data length
+Time = linspace(Pre, Post, size(mean_dff, 1))'; % Adjust Time to match data length
+
+
+% Plot using shadedErrorBar
+shadedErrorBar(Time, mean_dff, SEM, 'lineprops', '-r', 'patchSaturation', 0.3);
 
 % Add labels and title
 xlabel('Time (s)');
 ylabel('Mean Z-score');
 title('Mean Z-score with SEM');
+
+% Add grid and adjust limits
 grid on;
-
-% Save final results
-writetable(prePostMeanZScoresTable, [Output '_PrePostMeanZScores.csv']);
-writetable(TTL1_on_dff, [Output '.csv']);
-
-
-
-
-
+xlim([min(Time), max(Time)]);
+ylim([min(mean_dff - SEM), max(mean_dff + SEM)]);
